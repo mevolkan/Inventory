@@ -62,15 +62,22 @@
                 <div id="part-show-in-stock" class="ui horizontal divider"></div>
                 <!--files-->
                 <div id="part-stock-files" class="row">
-                    <div class="six wide column left aligned">
+                    <div class="five wide column left aligned">
                         <span id="part-show-stock" class="row right floated"></span>
                     </div>
-                    <div class="ten wide column right aligned">
+                    <div class="eleven wide column right aligned">
                         <div class="row">
                             <a id="part-show-dsheet" class="ui icon label"><i class="file pdf icon"></i>
                                 Datasheet</a>
-                            <a id="part-show-seller" class="ui icon label"><i class="cart icon"></i>
-                                Vendor</a>
+                            <a id="part-show-seller" class="ui label icon">
+                                <i class="cart icon"></i>
+                                </a>
+                            <a id="part-show-dist" class="ui icon tag label dropdown">
+                                <div class="stock floating circular ui label">0</div>
+                                <span class="text">Dist</span>
+                                <div class="menu">
+                                </div>
+                            </a>
                             <a id="part-show-cad" class="ui icon label"><i class="file archive icon"></i>
                                 CAD</a>
                         </div>
@@ -232,25 +239,13 @@
                     </div>
                 </div>
                 <div class="fields">
-                    <div class="three wide field">
-                        <label><i class="shopping cart icon"></i> Distributor</label>
-                        <input id="part-add-dist" type="text" placeholder="Distributor">
-                    </div>
-                    <div class="five wide field">
-                        <label><i class="globe icon"></i> Link</label>
-                        <input id="part-add-link" type="text" placeholder="Link">
-                    </div>
-                    <div class="three wide field">
+                    <div class="eight wide field">
                         <label><i class="cart arrow down icon"></i> Stock</label>
                         <input id="part-add-stock" type="text" placeholder="Stock">
                     </div>
-                    <div class="three wide field">
+                    <div class="eight wide field">
                         <label><i class="cart arrow down icon"></i>Stock Limit</label>
                         <input id="part-add-slimit" type="text" placeholder="Limit">
-                    </div>
-                    <div class="two cost wide field">
-                        <label><i class="dollar sign icon"></i> Cost</label>
-                        <input id="part-add-cost" type="text" placeholder="Cost" value="0">
                     </div>
                 </div>
                 <div class="fields">
@@ -282,22 +277,27 @@
                     <a class="item" data-tab="Specifications"><i class="list icon"></i> Specifications</a>
                     <a class="item" data-tab="Images"><i class="image icon"></i> Images</a>
                     <a class="item" data-tab="notes"><i class="sticky note icon"></i> Notes</a>
+                    <a class="item" data-tab="distbs"><i class="cart icon"></i> Distributors</a>
                 </div>
                 <div class="ui tab segment active" data-tab="Description">
                     <label>Description</label>
                     <textarea id="part-add-desc" rows="2"></textarea>
                 </div>
                 <div class="ui tab segment" data-tab="Specifications">
-                    <label>Specifications [Comma Separated]</label>
+                    <label>Specifications,format [spec,description]+newline</label>
                     <textarea id="part-add-spec" rows="2"></textarea>
                 </div>
                 <div class="ui  tab segment" data-tab="Images">
-                    <label>Images</label>
+                    <label>Images, Double click to open selection dialog</label>
                     <textarea id="part-add-images" rows="2" readonly=""></textarea>
                 </div>
                 <div class="ui tab segment" data-tab="notes">
-                    <label>Notes</label>
+                    <label>Notes, seperate notes with a newline</label>
                     <textarea id="part-add-notes" rows="2"></textarea>
+                </div>
+                <div class="ui tab segment" data-tab="distbs">
+                    <label>Distributors, format[name,link,stock,cost]+newline</label>
+                    <textarea id="part-add-distbs" rows="2"></textarea>
                 </div>
 
             </div>

@@ -141,47 +141,45 @@ p{
     cursor: pointer;
 }
 
-#list-panel .item a{
+/*#list-panel .item a{
     color: rgb(230, 111, 0) !important;
-}
+}*/
 
 #list-panel .item img{
     border: 2px solid transparent;
     outline: 2px solid #08f2fa;
+    height: 96px;
+    max-width: 96px;
 }
 #list-panel .item .header{
     font-size: 14px;
 }
-
+.hd-inv-id{
+    color: rgb(230, 111, 0) !important;
+    text-shadow: 0 0 1px rgb(245, 193, 144);
+}
+.hd-manf-id{
+    color: #4ee7da;
+    text-shadow: 0 0 2px rgb(230, 111, 0);
+}
 #list-panel .item .description{
     color: rgb(191, 192, 192) !important;
 }
-/*
-#list-panel .item .description:hover{
-    color: rgb(157, 158, 158) !important;
-    cursor: pointer;
-}
-*/
 #list-panel .list-group-item {
     color: #fff;
     background-color: transparent;
     border-radius: 8px !important;
 }
-
 #list-panel .list-group-item-text {
     color: #fff;
 }
-
 #list-panel .list-group-item:hover {
     color: #111;
     background-color: #fff;
 }
-
-
 #list-panel.scroll-style::-webkit-scrollbar-thumb {
     background-color: #eee;
 }
-
 /*part info section*/
 .column.dev-desc{
     min-width: 500px;
@@ -192,18 +190,30 @@ p{
     /* box-shadow: 0px 2px 0px 2px rgba(133, 229, 253, 0.35); */
     scrollbar-width: none;
 }
+#part-show-dist{
+    background-color: #76ec51;
+    font-weight: bold;
+}
+.ui.tag.label:before{
+    background-color: #76ec51;
+}
+#part-show-dist .menu{
+    background-color: rgba(124, 251, 86, 0.95);
+    margin-top: 4px;
+}
+#part-show-dist .stock{
+    background-color: #fd0202;
+    color:#cad1d1;
+}
 
 .dev-desc .part-extra-info{
     overflow-y: auto;
 }
-
-
 .part-extra-info::-webkit-scrollbar-thumb {
     background-color: rgb(167, 167, 167);
     width: 2px !important;
     display: none;
 }
-
 .part-extra-info::-webkit-scrollbar {
     width: 1px !important;
     display: none;
@@ -220,7 +230,6 @@ p{
     color: #08f2fa !important;
     margin-top: 8px;
 }
-
 .dev-desc #part-icon-info{
     display: flex;
     align-items: center;
@@ -306,6 +315,8 @@ p{
     width: 100%;
     color:#b3b3b3;
     /* text-shadow: 0 0 2px #f8ef9a; */
+    color:#cfcfcf;
+    text-shadow: 0 0 2px #f8ef9a;
     margin-bottom: 10px;
 }
 #part-show-notes i{

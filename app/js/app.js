@@ -38,10 +38,7 @@ const internal = require('stream');
                 return NaN
             }
         },
-        trimDesc = (desc) => {
-            if (desc.length > 60) return desc.substring(0, 60) + '...';
-            else return desc;
-        },
+        //get resources directory to fetch data from
         getResDir = (src) => {
             var a_dir = ((app_prefs.default === true) ? `${app_dir}\\${app_prefs.dir}` : app_prefs.dir),
                 s_dir = `${a_dir}\\${src}`;
@@ -49,6 +46,16 @@ const internal = require('stream');
             if (exists === false) s_dir = `${app_dir}\\res\\${src}`;
             return s_dir;
         };
+
+        /**
+         * Shorten string
+         * @param {Integer} len 
+         * @returns String
+         */
+        String.prototype.shortenValue = function (len) {
+            if (this.length > len) return this.substring(0, len) + '...';
+            else return this;
+        }
 
     var dialogs = (function dialogs() {
 
@@ -323,6 +330,19 @@ const internal = require('stream');
         }
 
         /**
+         * edit the list item content
+         * @param {Object} part_data 
+         */
+        function listItemContent(item_data, item = null, empty = false) {
+            if (item === null) item = $(`#list-panel #${item_data.id}`);
+            if (empty === true) item.empty();
+            item.html(`<div class="image">
+            <img class="ui tiny image" src="${getResDir(`images\\${item_data.icon}`)}"></div>
+            <div class="content"><a class="header hd-inv-id">${item_data.id}<br><span class="hd-manf-id">${item_data.manf_part_no}</span></a>
+            <div class="description">${item_data.description.shortenValue(60)}</div>
+            </div>`);
+        }
+        /**
          * add a new part item
          * @param {array} part_data 
          */
@@ -332,27 +352,21 @@ const internal = require('stream');
             d_.className = 'item';
             d_.setAttribute("id", part_data.id);
             //add content
-            d_.innerHTML = `<div class="image">
-            <img class="ui tiny image" src="${getResDir(`images\\${part_data.icon}`)}"></div>
-            <div class="content"><a class="header">${part_data.id}<br>${part_data.manf_part_no}</a>
-            <div class="description">${trimDesc(part_data.description)}</div>
-            </div>`
+            listItemContent(part_data, $(d_));
             //add click listener
             d_.addEventListener('click', (e) => {
                 e.preventDefault();
-                var cn = e.target.className,
-                    par = e.target,
-                    id = '';
-                //get ID
-                if (cn === 'content') par = par.parentElement;
-                else if (cn === 'description' || cn === 'header' || cn.indexOf('image') !== -1)
-                    par = par.parentElement.parentNode;
-                id = par.id;
-                if (prevListClicked !== null && id === prevListClicked.id) return;
-                if (partsJsonDb !== null) {
-                    partAddEditUi.partShowData(partsJsonDb[id]);
-                }
+                const cn = e.target.className,
+                    par = e.target.closest('.item'),
+                    id = par.id;
+                //check if already selected
+                if ((prevListClicked !== null && id === prevListClicked.id) ||
+                    partsJsonDb[id] === undefined) return;
+                //show part data
+                partAddEditUi.partShowData(partsJsonDb[id]);
+                //set clicked part active
                 par.setAttribute("style", "background-color: rgb(60, 60, 60)");
+                //set prev selected part inactive
                 if (prevListClicked !== null) {
                     prevListClicked.setAttribute("style", "background-color: transparent");
                 }
@@ -405,17 +419,6 @@ const internal = require('stream');
                 addNewPartItem(part_data);
             });
             partAddEditUi.initPartShow();
-        }
-
-        /**
-         * edit the list item content
-         * @param {Object} part_data 
-         */
-        function editListItem(part_data) {
-            $(`#list-panel #${part_data.id}`).empty().html(`<img class="ui avatar image" src="${getResDir(`\\images\\${part_data.icon}`)}">
-            <div class="content"><a class="header">${part_data.id} | ${part_data.manf_part_no}</a>
-            <div class="description">${trimDesc(part_data.description)}</div>
-            </div>`);
         }
 
         /**
@@ -498,7 +501,6 @@ const internal = require('stream');
                     listFilterParts(filter[ft]);
                 }
             });
-            //$('#btn-part-filter').dropdown('set exactly', 'All Parts');
             //search components button event
             $('#btn-part-sc').on('click', (e) => {
                 e.preventDefault();
@@ -546,7 +548,7 @@ const internal = require('stream');
             setListHeight: setListHeight,
             addNewPartItem: addNewPartItem,
             generateList: generateList,
-            editListItem: editListItem,
+            listItemContent: listItemContent,
             listDeletePart: listDeletePart
         }
     })();
@@ -651,14 +653,16 @@ const internal = require('stream');
             cad: $('#part-add-cad'),
             specs: $('#part-add-spec'),
             images: $('#part-add-images'),
-            seller: $('#part-add-dist'),
-            link: $('#part-add-link'),
-            cost: $('#part-add-cost'),
             stock_limit: $('#part-add-slimit'),
-            notes: $('#part-add-notes')
+            notes: $('#part-add-notes'),
+            dist: $('#part-add-distbs')
         };
         //preiovus shown id
-        var selectedID = '';
+        var selectedID = '',
+            //distributors array object
+            distObj = [],
+            //current vendor info
+            curVendor = {};
         /**
          * clear modal part fields
          */
@@ -670,6 +674,24 @@ const internal = require('stream');
             });
             pEl.type.dropdown('clear');
             pEl.package.dropdown('clear');
+        }
+
+        /**
+         * get and parse distributors
+         * @param {String} p_dist 
+         * @returns array object
+         */
+        function getDistData(p_dist) {
+            try {
+                var d_ = [];
+                const dists = p_dist.split('\n');
+                dists.forEach(dist => {
+                    var slc = dist.split(';');
+                    const d_arr = { 'dist': slc[0], 'link': slc[1], 'stock': slc[2], 'cost': slc[3] };
+                    d_.push(d_arr);
+                });
+                return d_;
+            } catch (err) { return [] }
         }
         /**
          * get part modal fields values
@@ -698,23 +720,22 @@ const internal = require('stream');
             if (isPartNew === true) {
                 sql = `INSERT INTO parts 
                     (id, stock, type, manf, manf_part_no, package, pins_no, datasheet, description, icon, 
-                    cad, specs, images, seller, link, cost, stock_limit, notes) VALUES (
+                    cad, specs, images, stock_limit, notes,dist) VALUES (
                         "${data.id}", "${data.stock}", "${data.type}", "${data.manf}", "${data.manf_part_no}", "${data.package}", "${data.pins_no}",
                         "${data.datasheet}", "${data.description}", "${data.icon}", "${data.cad}", "${data.specs}", "${data.images}",
-                        "${data.seller}", "${data.link}", "${data.cost}", "${data.stock_limit}", "${data.notes}")`;
+                        "${data.stock_limit}", "${data.notes}, "${data.dist}")`;
             } else {
                 sql = `UPDATE parts SET 
                         stock="${data.stock}", type="${data.type}", manf="${data.manf}", 
                         manf_part_no="${data.manf_part_no}", package="${data.package}", pins_no="${data.pins_no}",
                         datasheet="${data.datasheet}", description="${data.description}", icon="${data.icon}", 
                         cad="${data.cad}", specs="${data.specs}", images="${data.images}",
-                        seller="${data.seller}", link="${data.link}", cost="${data.cost}", 
-                        stock_limit="${data.stock_limit}", notes="${data.notes}"
+                        stock_limit="${data.stock_limit}", notes="${data.notes}", dist="${data.dist}"
                     WHERE
                         id="${data.id}"`;
                 partsJsonDb[data.id] = data;
                 partShowData(data);
-                listUi.editListItem(data);
+                listUi.listItemContent(data, null, true);
             }
             //show edits
             /*partsJsonDb[data.id] = data;
@@ -890,6 +911,17 @@ const internal = require('stream');
          * show part info - view port
          */
         var partsShowJson = Object.null,
+            //elements
+            pElShow = {
+                id: $('#part-show-id'),
+                icon: $('#part-show-icon'),
+                desc: $('#part-show-desc'),
+                stock: $('#part-show-stock'),
+                inStock: $('#part-show-in-stock'),
+                seller: $('#part-show-seller'),
+                table1: $('#part-show-table-1'),
+                table2: $('#part-show-table-2')
+            },
             //append image to view element
             appendPartImage = (src) => {
                 var imgEl = $('#part-show-images img');
@@ -925,48 +957,66 @@ const internal = require('stream');
                     appendPartImage(img);
                 }
             },
+            //show distributors
+            partShowDistbs = (p_dist) => {
+                try {
+                    curVendor = {};
+                    var options = [],
+                        init = true;
+                    p_dist.forEach(vd => {
+                        const val = vd.dist.shortenValue(9);
+                        const item = { name: val, value: vd.dist, selected: init };
+                        options.push(item);
+                        init = false;
+                    });
+                    $('#part-show-dist').dropdown('change values', options);
+                } catch (err) {
+                    //console.log(err)
+                }
+            },
+            //show stock
+            partShowStock = (stock) => {
+                pElShow.stock.html(`Stock : <i class="cart arrow down icon" style="color: #47ff56"></i>${stock}&nbsp;&nbsp;
+                                        <i class="dollar icon" style="color: #ff2335"></i>${((curVendor.cost !== undefined) ? curVendor.cost : '0.00')}`);
+            },
             /*show part info*/
             partShowData = (pData, tb_update = true) => {
-                partsShowJson = Object.assign({}, pData);
-                var stock = [['In Stock', '5aff0e'], [`Low Stock - Limit is ${partsShowJson.stock_limit}`, 'ffcb22'], ['Out of Stock', 'ff0e0e']],
-                    slv = 0;
-                //show data only once
-                //if (prevID === partsShowJson.id) return;
-                selectedID = partsShowJson.id;
-                //elements
-                var pElShow = {
-                    id: $('#part-show-id'),
-                    icon: $('#part-show-icon'),
-                    desc: $('#part-show-desc'),
-                    stock: $('#part-show-stock'),
-                    inStock: $('#part-show-in-stock'),
-                    seller: $('#part-show-seller'),
-                    table1: $('#part-show-table-1'),
-                    table2: $('#part-show-table-2')
-                };
-                //id+manf+mNum
-                pElShow.id.html(`<span data-tooltip="Part ID" data-position="right center">${partsShowJson.id} </span><br><span data-tooltip="Part Number" data-position="right center"> ${partsShowJson.manf_part_no}</span>`);
-                //seller
-                pElShow.seller.html(`<i class="cart icon"></i> ${partsShowJson.seller}`);
-                //icon
-                pElShow.icon.html(`<img src="${getResDir(`\\images\\${partsShowJson.icon}`)}" class="img-fluid" alt="${partsShowJson.id}">`);
-                //description
-                pElShow.desc.html(`<span class="column sixteen wide">${partsShowJson.description}</span>`);
-                //stock
-                if (partsShowJson.stock == 0) slv = 2;
-                else if (filterInt(partsShowJson.stock) < filterInt(partsShowJson.stock_limit)) slv = 1;
-                pElShow.inStock.html(`<span style="color:#${stock[slv][1]};animation:${(slv === 3) ? 'text-flicker 0.5s infinite alternate' : 'none'}">${stock[slv][0]}</span>`);
-                pElShow.stock.html(`Stock : <i class="cart arrow down icon" style="color: #47ff56"></i>${partsShowJson.stock}&nbsp;&nbsp;
-                                        <i class="dollar icon" style="color: #ff2335"></i>${partsShowJson.cost}`);
-                if (tb_update === true) {
-                    //table 1 info
-                    pElShow.table1.html(partShowTable1Html(partsShowJson));
-                    //table 2 specs
-                    pElShow.table2.html(partShowTable2Html(partsShowJson));
-                    //show images
-                    partShowImages(partsShowJson.images);
-                    //notes
-                    partsShowNotes(partsShowJson.notes)
+                try {
+                    partsShowJson = Object.assign({}, pData);
+                    var stock = [['In Stock', '5aff0e'], [`Low Stock - Limit is ${partsShowJson.stock_limit}`, 'ffcb22'], ['Out of Stock', 'ff0e0e']],
+                        slv = 0;
+                    //show data only once
+                    //if (prevID === partsShowJson.id) return;
+                    selectedID = partsShowJson.id;
+                    //id+manf+mNum
+                    pElShow.id.html(`<span class='hd-inv-id' data-tooltip="Part ID" data-position="right center">${partsShowJson.id}</span><br><span class='hd-manf-id' data-tooltip="Part Number" data-position="right center">${partsShowJson.manf_part_no}</span`);                
+                    //distributors
+                    $('#part-show-dist .stock').text('0'); //init original stock
+                    distObj = getDistData(partsShowJson.dist); //set distributor
+                    partShowDistbs(distObj);
+                    //icon
+                    pElShow.icon.html(`<img src="${getResDir(`\\images\\${partsShowJson.icon}`)}" class="img-fluid" alt="${partsShowJson.id}">`);
+                    //description
+                    pElShow.desc.html(`<span class="column sixteen wide">${partsShowJson.description}</span>`);
+                    //stock
+                    if (partsShowJson.stock == 0) slv = 2;
+                    else if (filterInt(partsShowJson.stock) < filterInt(partsShowJson.stock_limit)) slv = 1;
+                    pElShow.inStock.html(`<span style="color:#${stock[slv][1]};animation:${(slv === 2) ? 'text-flicker 0.5s infinite alternate' : 'none'}">${stock[slv][0]}</span>`);
+                    //show stock
+                    partShowStock(partsShowJson.stock);
+                    //if updating data
+                    if (tb_update === true) {
+                        //table 1 info
+                        pElShow.table1.html(partShowTable1Html(partsShowJson));
+                        //table 2 specs
+                        pElShow.table2.html(partShowTable2Html(partsShowJson));
+                        //show images
+                        partShowImages(partsShowJson.images);
+                        //notes
+                        partsShowNotes(partsShowJson.notes)
+                    }
+                } catch (err) {
+                    swal('', 'Failed to show part data', 'error');
                 }
             },
             //edit part data - show edit modal
@@ -1211,6 +1261,19 @@ const internal = require('stream');
             partCategoriesInit();
             partPackagesInit();
         }
+
+        /**
+         * Distributor info. dist-link-cost
+         * @param {String} distb 
+         */
+        function getDistInfo(distb) {
+            if (distObj.length > 0) {
+                const index = distObj.findIndex((vd) => (vd.dist) === distb);
+                curVendor = distObj[index];
+                $('#part-show-dist .stock').text(curVendor.stock);
+                partShowStock(partsJsonDb[selectedID].stock);
+            }
+        }
         /**
          * init
          */
@@ -1248,9 +1311,15 @@ const internal = require('stream');
             });
             //init categories
             initAllSelections();
-            //init part selection modal fields
-            $('#part-add-cat.dropdown').dropdown();
-            $('#part-add-pkg.dropdown').dropdown();
+            //distributors dropdown
+            $('#part-show-dist').dropdown({
+                values: [],
+                onChange: function (value, text, $selectedItem) {
+                    if (value.length > 0) {
+                        getDistInfo(value);
+                    }
+                }
+            });
             //init modal tabs
             $('#modal-part-add .ui.tabular.menu .item').tab();
             $('#div-part-img-spec .ui.tabular.menu .item').tab();
@@ -1309,8 +1378,10 @@ const internal = require('stream');
             $('#part-show-seller').on('click', (e) => {
                 try {
                     e.preventDefault();
-                    if (partsShowJson !== undefined && partsShowJson.link.length > 0) {
-                        shell.openExternal(partsShowJson.link);
+                    if (curVendor.link !== undefined) {
+                        shell.openExternal(curVendor.link, 'info');
+                    } else {
+                        dialogs.showTimerMsg(['', 'No distributor set!', 'error', 1500]);
                     }
                 } catch (e) { }
             });
